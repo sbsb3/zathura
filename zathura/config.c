@@ -563,7 +563,7 @@ void config_load_default(zathura_t* zathura) {
   girara_setting_add(gsession, "search-hadjust",             &bool_value,  BOOLEAN, false, _("Center result horizontally"), NULL, NULL);
   bool_value = true;
   girara_setting_add(gsession, "render-loading",             &bool_value,  BOOLEAN, false, _("Render 'Loading ...'"), NULL, NULL);
-  girara_setting_add(gsession, "adjust-open",                "best-fit",   STRING,  false, _("Adjust to when opening file (best-fit, width, smart-width)"), NULL, NULL);
+  girara_setting_add(gsession, "adjust-open",                "best-fit",   STRING,  false, _("Adjust to when opening file (best-fit, width, smart-width, none)"), NULL, NULL);
   girara_setting_add(gsession, "page-mode",                  "none",       STRING,  false, _("Default page mode (none, equal_width, equal_height)"), NULL, NULL);
   bool_value = false;
   girara_setting_add(gsession, "show-hidden",                &bool_value,  BOOLEAN, false, _("Show hidden files and directories"), NULL, NULL);

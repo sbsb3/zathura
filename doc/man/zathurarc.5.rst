@@ -648,10 +648,12 @@ The settings described here can be changed with ``set``.
   * Default value: true
 
 *adjust-open*
-  Defines which auto adjustment mode should be used if a document is loaded.
-  Possible options are "best-fit", "width" and "smart-width". See
-  ``adjust_window`` under *Shortcut functions* above for what "smart-width"
-  does.
+  Defines which auto adjustment mode should be used when a document is
+  loaded. This applies on every open, including files that already have a
+  history entry; the saved page is still restored, but the saved zoom is
+  recomputed. Possible options are "best-fit", "width", "smart-width" and
+  "none". Use "none" to keep the last zoom instead. See ``adjust_window``
+  under *Shortcut functions* above for what "smart-width" does.
 
   * Value type: String
   * Default value: best-fit

@@ -945,8 +945,10 @@ bool document_open(zathura_t* zathura, const char* path, const char* uri, const 
     zathura_document_set_current_page_number(document, 0);
   }
 
-  /* apply open adjustment */
-  if (known_file == false) {
+  /* apply open adjustment on every load. Saved page/rotation are still
+   * restored; saved zoom is recomputed by adjust_view when a mode is set.
+   * Use adjust-open "none" to keep the last zoom instead. */
+  {
     g_autofree char* adjust_open = NULL;
     girara_setting_get(zathura->ui.session, "adjust-open", &adjust_open);
     if (g_strcmp0(adjust_open, "best-fit") == 0) {
@@ -958,8 +960,6 @@ bool document_open(zathura_t* zathura, const char* path, const char* uri, const 
     } else {
       zathura_document_set_adjust_mode(document, ZATHURA_ADJUST_NONE);
     }
-  } else {
-    zathura_document_set_adjust_mode(document, ZATHURA_ADJUST_NONE);
   }
 
   /* initialize bisect state */
@@ -1159,7 +1159,14 @@ bool document_open(zathura_t* zathura, const char* path, const char* uri, const 
   /* Set position (only if restoring from history file) */
   if (file_info.current_page == page && (file_info.position_x != 0 || file_info.position_y != 0)) {
     girara_debug("Setting position.");
-    position_set(zathura, file_info.position_x, file_info.position_y);
+    double pos_x                            = file_info.position_x;
+    const zathura_adjust_mode_t adjust_mode = zathura_document_get_adjust_mode(document);
+    if (adjust_mode == ZATHURA_ADJUST_BESTFIT || adjust_mode == ZATHURA_ADJUST_WIDTH ||
+        adjust_mode == ZATHURA_ADJUST_SMARTWIDTH) {
+      /* let the adjust mode pick horizontal alignment (center / content-left) */
+      pos_x = -1;
+    }
+    position_set(zathura, pos_x, file_info.position_y);
   }
 
   bool show_signature_information = false;
