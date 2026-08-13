@@ -731,7 +731,8 @@ The settings described here can be changed with ``set``.
 
 *highlight-active-color*
   Defines the color that is used to show the current selected highlighted element
-  (e.g: current search result)
+  (e.g: current search result). Prefer an ``rgba()`` value so the page text stays
+  readable. A hex color without alpha is drawn as a 40% tint.
 
   * Value type: String
   * Default value: rgba(0,188,0,0.5)
@@ -746,7 +747,9 @@ The settings described here can be changed with ``set``.
 
 *highlight-color*
   Defines the color that is used for highlighting parts of the document (e.g.:
-  show search results)
+  search results, mouse text selection, and the Shift-drag highlighter). Prefer
+  an ``rgba()`` value so the page text stays readable. A hex color without
+  alpha (for example ``#2E4A6B``) is drawn as a 40% tint.
 
   * Value type: String
   * Default value: rgba(159,251,0,0.5)

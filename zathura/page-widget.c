@@ -497,6 +497,19 @@ static bool page_widget_on_screen(GtkWidget* widget) {
   return graphene_rect_intersection(&view, &bounds, NULL);
 }
 
+/* Hex colors such as #2E4A6B parse as opaque and would hide the page text.
+ * Honor an explicit rgba() alpha; otherwise paint a translucent tint. */
+static double highlight_overlay_alpha(const GdkRGBA* color) {
+  if (color->alpha < 1.0) {
+    return color->alpha;
+  }
+  return 0.4;
+}
+
+static void set_highlight_overlay_source(cairo_t* cairo, const GdkRGBA* color) {
+  cairo_set_source_rgba(cairo, color->red, color->green, color->blue, highlight_overlay_alpha(color));
+}
+
 static zathura_device_factors_t get_safe_device_factors(cairo_surface_t* surface) {
   zathura_device_factors_t factors;
   cairo_surface_get_device_scale(surface, &factors.x, &factors.y);
@@ -697,10 +710,10 @@ static void cb_page_draw(GtkDrawingArea* GIRARA_UNUSED(area), cairo_t* cairo, in
         /* draw position */
         if ((int)idx == priv->search.current) {
           const GdkRGBA color = zathura->ui.colors.highlight_color_active;
-          cairo_set_source_rgba(cairo, color.red, color.green, color.blue, color.alpha);
+          set_highlight_overlay_source(cairo, &color);
         } else {
           const GdkRGBA color = zathura->ui.colors.highlight_color;
-          cairo_set_source_rgba(cairo, color.red, color.green, color.blue, color.alpha);
+          set_highlight_overlay_source(cairo, &color);
         }
         cairo_rectangle(cairo, rectangle.x1, rectangle.y1, (rectangle.x2 - rectangle.x1),
                         (rectangle.y2 - rectangle.y1));
@@ -709,7 +722,7 @@ static void cb_page_draw(GtkDrawingArea* GIRARA_UNUSED(area), cairo_t* cairo, in
     }
     if (priv->selection.list != NULL && priv->selection.draw == true) {
       const GdkRGBA color = priv->zathura->ui.colors.highlight_color;
-      cairo_set_source_rgba(cairo, color.red, color.green, color.blue, color.alpha);
+      set_highlight_overlay_source(cairo, &color);
       for (size_t idx = 0; idx != girara_list_size(priv->selection.list); ++idx) {
         zathura_rectangle_t* rect     = girara_list_nth(priv->selection.list, idx);
         zathura_rectangle_t rectangle = recalc_rectangle(priv->page, *rect);
@@ -719,7 +732,7 @@ static void cb_page_draw(GtkDrawingArea* GIRARA_UNUSED(area), cairo_t* cairo, in
     }
     if (priv->highlighter.bounds.x1 != -1 && priv->highlighter.bounds.y1 != -1 && priv->highlighter.draw == true) {
       const GdkRGBA color = priv->zathura->ui.colors.highlight_color;
-      cairo_set_source_rgba(cairo, color.red, color.green, color.blue, color.alpha);
+      set_highlight_overlay_source(cairo, &color);
       zathura_rectangle_t rectangle = recalc_rectangle(priv->page, priv->highlighter.bounds);
       cairo_rectangle(cairo, rectangle.x1, rectangle.y1, rectangle.x2 - rectangle.x1, rectangle.y2 - rectangle.y1);
       cairo_fill(cairo);
