@@ -200,12 +200,28 @@ bool cmd_jumplist_list(girara_session_t* session, girara_list_t* argument_list) 
   return true;
 }
 
+static bool document_is_modified(zathura_t* zathura) {
+  zathura_document_t* document = zathura_get_document(zathura);
+  if (document == NULL) {
+    return false;
+  }
+
+  bool unsaved              = false;
+  const zathura_error_t err = zathura_document_has_unsaved_changes(document, &unsaved);
+  return err == ZATHURA_ERROR_OK && unsaved == true;
+}
+
 bool cmd_close(girara_session_t* session, girara_list_t* UNUSED(argument_list)) {
   g_return_val_if_fail(session != NULL, false);
   g_return_val_if_fail(session->global.data != NULL, false);
   zathura_t* zathura = session->global.data;
   if (zathura_has_document(zathura) == false) {
     return true;
+  }
+
+  if (document_is_modified(zathura) == true) {
+    girara_notify(session, GIRARA_ERROR, _("Document has unsaved changes. Use :write to save or :q! to quit."));
+    return false;
   }
 
   document_close(zathura, false);
@@ -321,6 +337,17 @@ bool cmd_quit(girara_session_t* session, girara_list_t* UNUSED(argument_list)) {
   return true;
 }
 
+bool cmd_quitf(girara_session_t* session, girara_list_t* UNUSED(argument_list)) {
+  girara_argument_t argument = {.n = FORCE, .data = NULL};
+  sc_quit(session, &argument, NULL, 0);
+
+  return true;
+}
+
+bool cmd_highlight_selection(girara_session_t* session, girara_list_t* UNUSED(argument_list)) {
+  return sc_highlight_selection(session, NULL, NULL, 0);
+}
+
 bool cmd_print(girara_session_t* session, girara_list_t* UNUSED(argument_list)) {
   g_return_val_if_fail(session != NULL, false);
   g_return_val_if_fail(session->global.data != NULL, false);
@@ -361,7 +388,10 @@ bool cmd_save(girara_session_t* session, girara_list_t* argument_list) {
     return false;
   }
 
-  if (girara_list_size(argument_list) == 1) {
+  const size_t argc = girara_list_size(argument_list);
+  if (argc == 0) {
+    document_save(zathura, zathura_document_get_path(zathura_get_document(zathura)), true);
+  } else if (argc == 1) {
     document_save(zathura, girara_list_nth(argument_list, 0), false);
   } else {
     girara_notify(session, GIRARA_ERROR, _("Invalid number of arguments."));
@@ -386,7 +416,10 @@ bool cmd_savef(girara_session_t* session, girara_list_t* argument_list) {
     return false;
   }
 
-  if (girara_list_size(argument_list) == 1) {
+  const size_t argc = girara_list_size(argument_list);
+  if (argc == 0) {
+    document_save(zathura, zathura_document_get_path(zathura_get_document(zathura)), true);
+  } else if (argc == 1) {
     document_save(zathura, girara_list_nth(argument_list, 0), true);
   } else {
     girara_notify(session, GIRARA_ERROR, _("Invalid number of arguments."));

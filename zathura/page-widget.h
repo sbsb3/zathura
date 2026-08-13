@@ -56,6 +56,30 @@ void zathura_page_widget_update_surface(ZathuraPageWidget* widget, cairo_surface
  * @param widget the widget
  */
 void zathura_page_widget_clear_selection(ZathuraPageWidget* widget);
+
+/**
+ * Get the last completed text-selection rectangle in page-point space.
+ * (x1, y1) is the drag start and (x2, y2) the drag end. Returns false if
+ * the widget has no stored text selection.
+ *
+ * @param widget the widget
+ * @param rectangle set to the selection on success
+ * @return true if a text selection is available
+ */
+bool zathura_page_widget_get_text_selection(ZathuraPageWidget* widget, zathura_rectangle_t* rectangle);
+/**
+ * Forget the stored text selection and hide the overlay.
+ *
+ * @param widget the widget
+ */
+void zathura_page_widget_clear_stored_selection(ZathuraPageWidget* widget);
+
+/**
+ * Drop the cached surface and request a fresh render of the page.
+ *
+ * @param widget the widget
+ */
+void zathura_page_widget_invalidate(ZathuraPageWidget* widget);
 /**
  * Draw a rectangle to mark links or search results
  * @param widget the widget

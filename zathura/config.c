@@ -289,6 +289,7 @@ static void cb_scroll_step_value_changed(girara_session_t* session, const char* 
 static void add_default_shortcuts(girara_session_t* gsession, girara_mode_t mode) {
   girara_shortcut_add(gsession, 0, GDK_KEY_a, NULL, sc_adjust_window, mode, ZATHURA_ADJUST_BESTFIT, NULL);
   girara_shortcut_add(gsession, 0, GDK_KEY_s, NULL, sc_adjust_window, mode, ZATHURA_ADJUST_WIDTH, NULL);
+  girara_shortcut_add(gsession, 0, GDK_KEY_A, NULL, sc_highlight_selection, mode, 0, NULL);
 
   girara_shortcut_add(gsession, 0, GDK_KEY_F, NULL, sc_display_link, mode, 0, NULL);
   girara_shortcut_add(gsession, 0, GDK_KEY_c, NULL, sc_copy_link, mode, 0, NULL);
@@ -527,6 +528,7 @@ void config_load_default(zathura_t* zathura) {
   girara_setting_add(gsession, "recolor-darkcolor",     "#FFFFFF",    STRING, false, _("Recoloring (dark color)"), cb_color_change, NULL);
   girara_setting_add(gsession, "recolor-lightcolor",    "#000000",    STRING, false, _("Recoloring (light color)"), cb_color_change, NULL);
   girara_setting_add(gsession, "highlight-color",       NULL,         STRING, false, _("Color for highlighting"), cb_color_change, NULL);
+  girara_setting_add(gsession, "highlight-annotation-color", "#FFEB3B", STRING, false, _("Color of created highlight annotations"), NULL, NULL);
   girara_setting_add(gsession, "highlight-fg",          NULL,         STRING, false, _("Foreground color for highlighting"),cb_color_change, NULL);
   girara_setting_add(gsession, "highlight-active-color",NULL,         STRING, false, _("Color for highlighting (active)"), cb_color_change, NULL);
   girara_setting_add(gsession, "render-loading-bg",     NULL,         STRING, false, _("'Loading ...' background color"), cb_color_change, NULL);
@@ -765,6 +767,9 @@ void config_load_default(zathura_t* zathura) {
   girara_inputbar_command_add(gsession, "help",       NULL,   cmd_help,                NULL,          _("Show help"));
   girara_inputbar_command_add(gsession, "open",       "o",    cmd_open,                cc_open,       _("Open document"));
   girara_inputbar_command_add(gsession, "quit",       "q",    cmd_quit,                NULL,          _("Close zathura"));
+  girara_inputbar_command_add(gsession, "quit!",      "q!",   cmd_quitf,               NULL,          _("Close zathura and discard unsaved changes"));
+  girara_inputbar_command_add(gsession, "highlight",            NULL,   cmd_highlight_selection, NULL,          _("Create a highlight annotation from the current selection"));
+  girara_inputbar_command_add(gsession, "highlight_selection",  NULL,   cmd_highlight_selection, NULL,          _("Create a highlight annotation from the current selection"));
   girara_inputbar_command_add(gsession, "print",      NULL,   cmd_print,               NULL,          _("Print document"));
   girara_inputbar_command_add(gsession, "save",       NULL,   cmd_save,                cc_write,      _("Save document"));
   girara_inputbar_command_add(gsession, "save!",      NULL,   cmd_savef,               cc_write,      _("Save document (and force overwriting)"));
@@ -802,6 +807,7 @@ void config_load_default(zathura_t* zathura) {
   girara_shortcut_mapping_add(gsession, "follow",                   sc_follow);
   girara_shortcut_mapping_add(gsession, "file_chooser",             sc_file_chooser);
   girara_shortcut_mapping_add(gsession, "goto",                     sc_goto);
+  girara_shortcut_mapping_add(gsession, "highlight_selection",      sc_highlight_selection);
   girara_shortcut_mapping_add(gsession, "jumplist",                 sc_jumplist);
   girara_shortcut_mapping_add(gsession, "mark_add",                 sc_mark_add);
   girara_shortcut_mapping_add(gsession, "mark_evaluate",            sc_mark_evaluate);

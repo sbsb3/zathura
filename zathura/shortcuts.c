@@ -1516,11 +1516,22 @@ bool sc_toggle_single_page_mode(girara_session_t* session, girara_argument_t* UN
   return true;
 }
 
-bool sc_quit(girara_session_t* session, girara_argument_t* UNUSED(argument), girara_event_t* UNUSED(event),
+bool sc_quit(girara_session_t* session, girara_argument_t* argument, girara_event_t* UNUSED(event),
              unsigned int UNUSED(t)) {
   g_return_val_if_fail(session != NULL, false);
   g_return_val_if_fail(session->global.data != NULL, false);
   zathura_t* zathura = session->global.data;
+
+  const bool force = (argument != NULL && argument->n == FORCE);
+  if (force == false && zathura_has_document(zathura) == true) {
+    bool unsaved              = false;
+    zathura_document_t* doc   = zathura_get_document(zathura);
+    const zathura_error_t err = zathura_document_has_unsaved_changes(doc, &unsaved);
+    if (err == ZATHURA_ERROR_OK && unsaved == true) {
+      girara_notify(session, GIRARA_ERROR, _("Document has unsaved changes. Use :write to save or :q! to quit."));
+      return false;
+    }
+  }
 
   girara_argument_t arg = {.n = GIRARA_HIDE, .data = NULL};
   girara_isc_completion(session, &arg, NULL, 0);
@@ -1712,6 +1723,66 @@ bool sc_zoom_page(girara_session_t* session, girara_argument_t* argument, girara
   refresh_view(zathura);
 
   return false;
+}
+
+bool sc_highlight_selection(girara_session_t* session, girara_argument_t* UNUSED(argument),
+                            girara_event_t* UNUSED(event), unsigned int UNUSED(t)) {
+  g_return_val_if_fail(session != NULL, false);
+  g_return_val_if_fail(session->global.data != NULL, false);
+  zathura_t* zathura           = session->global.data;
+  zathura_document_t* document = zathura_get_document(zathura);
+
+  if (document == NULL) {
+    girara_notify(session, GIRARA_ERROR, _("No document opened."));
+    return false;
+  }
+
+  zathura_page_t* page           = NULL;
+  ZathuraPageWidget* page_widget = NULL;
+  zathura_rectangle_t selection  = {0};
+  const unsigned int n_pages     = zathura_document_get_number_of_pages(document);
+  for (unsigned int i = 0; i < n_pages; i++) {
+    zathura_page_t* candidate        = zathura_document_get_page(document, i);
+    GtkWidget* widget                = zathura_page_get_widget(zathura, candidate);
+    ZathuraPageWidget* zathura_pagew = ZATHURA_PAGE_WIDGET(widget);
+    if (zathura_page_widget_get_text_selection(zathura_pagew, &selection) == true) {
+      page        = candidate;
+      page_widget = zathura_pagew;
+      break;
+    }
+  }
+
+  if (page == NULL || page_widget == NULL) {
+    girara_notify(session, GIRARA_WARNING, _("No text selected."));
+    return false;
+  }
+
+  GdkRGBA color            = {1.0, 235.0 / 255.0, 59.0 / 255.0, 1.0};
+  g_autofree char* value   = NULL;
+  girara_setting_get(session, "highlight-annotation-color", &value);
+  if (value != NULL) {
+    parse_color(&color, value);
+  }
+
+  const zathura_error_t error =
+      zathura_page_add_highlight(page, selection, color.red, color.green, color.blue);
+  if (error == ZATHURA_ERROR_NOT_IMPLEMENTED) {
+    girara_notify(session, GIRARA_ERROR, _("Annotations unsupported by this plugin"));
+    return false;
+  }
+  if (error == ZATHURA_ERROR_INVALID_ARGUMENTS) {
+    girara_notify(session, GIRARA_WARNING, _("No text in selection."));
+    return false;
+  }
+  if (error != ZATHURA_ERROR_OK) {
+    girara_notify(session, GIRARA_ERROR, _("Failed to add highlight."));
+    return false;
+  }
+
+  zathura_page_widget_clear_stored_selection(page_widget);
+  zathura_page_widget_invalidate(page_widget);
+  girara_notify(session, GIRARA_INFO, _("Highlight added."));
+  return true;
 }
 
 bool sc_nohlsearch(girara_session_t* session, girara_argument_t* UNUSED(argument), girara_event_t* UNUSED(event),

@@ -32,6 +32,7 @@
 #endif
 #include "document.h"
 #include "document-widget.h"
+#include "file-monitor.h"
 #include "shortcuts.h"
 #include "utils.h"
 #include "marks.h"
@@ -1251,7 +1252,21 @@ bool document_save(zathura_t* zathura, const char* path, bool overwrite) {
     return false;
   }
 
+  /* Pause the file monitor so our own write does not trigger a reload. */
+  if (zathura->file_monitor.monitor != NULL) {
+    zathura_filemonitor_stop(zathura->file_monitor.monitor);
+  }
+
   const zathura_error_t error = zathura_document_save_as(document, file_path);
+
+  if (zathura->file_monitor.monitor != NULL) {
+    zathura_filemonitor_start(zathura->file_monitor.monitor);
+  }
+
+  if (error == ZATHURA_ERROR_NOT_IMPLEMENTED) {
+    girara_notify(zathura->ui.session, GIRARA_ERROR, _("Saving is not supported by this plugin."));
+    return false;
+  }
   if (error != ZATHURA_ERROR_OK) {
     girara_notify(zathura->ui.session, GIRARA_ERROR, _("Failed to save document."));
     return false;

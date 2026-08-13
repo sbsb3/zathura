@@ -126,6 +126,15 @@ bool cmd_nohlsearch(girara_session_t* session, girara_list_t* argument_list);
 bool cmd_quit(girara_session_t* session, girara_list_t* argument_list);
 
 /**
+ * Close zathura, discarding unsaved changes
+ *
+ * @param session The used girara session
+ * @param argument_list List of passed arguments
+ * @return true if no error occurred
+ */
+bool cmd_quitf(girara_session_t* session, girara_list_t* argument_list);
+
+/**
  * Save the current file
  *
  * @param session The used girara session
@@ -197,5 +206,14 @@ bool cmd_version(girara_session_t* session, girara_list_t* argument_list);
  * @return true if no error occurred
  */
 bool cmd_source(girara_session_t* session, girara_list_t* argument_list);
+
+/**
+ * Convert the current text selection into a persistent highlight annotation
+ *
+ * @param session The used girara session
+ * @param argument_list List of passed arguments
+ * @return true if no error occurred
+ */
+bool cmd_highlight_selection(girara_session_t* session, girara_list_t* argument_list);
 
 #endif // COMMANDS_H

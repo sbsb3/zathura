@@ -63,6 +63,11 @@ typedef struct zathura_page_widget_private_s {
   } highlighter;
 
   struct {
+    zathura_rectangle_t rectangle; /**< Drag start/end in page-point space */
+    gboolean valid;                /**< True if a text selection was completed */
+  } last_selection;
+
+  struct {
     girara_list_t* list; /**< List of signatures on the page */
     gboolean retrieved;  /**< True if we already tried to retrieve the list of signatures */
     gboolean draw;       /**< True if links should be drawn */
@@ -227,6 +232,12 @@ static void zathura_page_widget_init(ZathuraPageWidget* widget) {
   priv->highlighter.bounds.x2 = -1;
   priv->highlighter.bounds.y2 = -1;
   priv->highlighter.draw      = false;
+
+  priv->last_selection.rectangle.x1 = -1;
+  priv->last_selection.rectangle.y1 = -1;
+  priv->last_selection.rectangle.x2 = -1;
+  priv->last_selection.rectangle.y2 = -1;
+  priv->last_selection.valid        = false;
 
   priv->signatures.list      = NULL;
   priv->signatures.retrieved = false;
@@ -977,6 +988,35 @@ void zathura_page_widget_clear_selection(ZathuraPageWidget* widget) {
   zathura_page_widget_redraw_canvas(widget);
 }
 
+bool zathura_page_widget_get_text_selection(ZathuraPageWidget* widget, zathura_rectangle_t* rectangle) {
+  g_return_val_if_fail(ZATHURA_IS_PAGE_WIDGET(widget), false);
+  g_return_val_if_fail(rectangle != NULL, false);
+
+  ZathuraPageWidgetPrivate* priv = zathura_page_widget_get_instance_private(widget);
+  if (priv->last_selection.valid == false) {
+    return false;
+  }
+
+  *rectangle = priv->last_selection.rectangle;
+  return true;
+}
+
+void zathura_page_widget_clear_stored_selection(ZathuraPageWidget* widget) {
+  g_return_if_fail(ZATHURA_IS_PAGE_WIDGET(widget));
+  ZathuraPageWidgetPrivate* priv = zathura_page_widget_get_instance_private(widget);
+  priv->last_selection.valid     = false;
+  zathura_page_widget_clear_selection(widget);
+}
+
+void zathura_page_widget_invalidate(ZathuraPageWidget* widget) {
+  g_return_if_fail(ZATHURA_IS_PAGE_WIDGET(widget));
+
+  zathura_page_widget_abort_render_request(widget);
+  zathura_page_widget_update_surface(widget, NULL, false);
+  zathura_page_widget_update_view_time(widget);
+  zathura_page_widget_redraw_canvas(widget);
+}
+
 static void cb_zathura_page_widget_button_press_event(GtkGestureClick* gesture, gint n_press, gdouble bx, gdouble by,
                                                       gpointer data) {
   GtkWidget* widget              = GTK_WIDGET(data);
@@ -1000,6 +1040,7 @@ static void cb_zathura_page_widget_button_press_event(GtkGestureClick* gesture, 
 
   if (gbutton == GDK_BUTTON_PRIMARY) {
     zathura_page_widget_clear_selection(page);
+    priv->last_selection.valid = false;
 
     if (n_press == 1) {
       /* clear pages with a selection already */
@@ -1011,6 +1052,7 @@ static void cb_zathura_page_widget_button_press_event(GtkGestureClick* gesture, 
             ZathuraPageWidget* other_page        = ZATHURA_PAGE_WIDGET(priv->zathura->pages[i]);
             ZathuraPageWidgetPrivate* other_priv = zathura_page_widget_get_instance_private(other_page);
 
+            other_priv->last_selection.valid = false;
             if (other_priv->selection.draw == true || other_priv->highlighter.draw == true) {
               zathura_page_widget_clear_selection(other_page);
             }
@@ -1147,8 +1189,12 @@ static void cb_zathura_page_widget_motion_notify(GtkEventControllerMotion* contr
 
       priv->selection.list = zathura_page_get_selection(priv->page, selection, NULL);
       if (priv->selection.list != NULL && girara_list_size(priv->selection.list) != 0) {
-        priv->selection.draw = true;
+        priv->selection.draw                 = true;
+        priv->last_selection.rectangle       = selection;
+        priv->last_selection.valid           = true;
         zathura_page_widget_redraw_canvas(page);
+      } else {
+        priv->last_selection.valid = false;
       }
     }
   } else {

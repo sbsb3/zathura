@@ -74,6 +74,7 @@ enum {
   ZOOM_SMOOTH,
   SMOOTH_UP,
   SMOOTH_DOWN,
+  FORCE,
 };
 
 /* unspecified page number */
