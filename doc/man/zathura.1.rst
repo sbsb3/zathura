@@ -104,6 +104,9 @@ General
     Abort
   a, s
     Adjust window in best-fit or width mode
+  A
+    Create a persistent highlight annotation from the current text selection
+    (requires a backend that can write PDF annotations, e.g. mupdf)
   /, ?
     Search for text
   n, N
@@ -266,7 +269,12 @@ close
   Close document.
 
 quit
-  Quit zathura. Abbreviation: ``q``.
+  Quit zathura. Abbreviation: ``q``. If the document has unsaved annotation
+  changes, quit is refused and a message is shown. Use ``:q!`` to discard
+  them.
+
+quit!
+  Quit zathura and discard unsaved annotation changes. Abbreviation: ``q!``.
 
 exec
   Execute an external command. ``$FILE`` expands to the current document path,
@@ -286,7 +294,16 @@ print
   Print document.
 
 write(!)
-  Save document (and force overwriting). Alias: ``save(!)``.
+  Save document. Without a path, annotations and other backend-supported
+  changes are written back to the current file. With a path, the document is
+  written to that location; use ``:write!`` (alias ``:save!``) to overwrite an
+  existing file. Saving is a no-op for backends that cannot write (they report
+  an error). Alias: ``save(!)``.
+
+highlight
+  Create a persistent highlight annotation from the current text selection.
+  The highlight is stored in the document and only written to disk on
+  ``:write``. Shortcut function: ``highlight_selection`` (default key ``A``).
 
 export
   Export attachments. First argument specifies the attachment identifier

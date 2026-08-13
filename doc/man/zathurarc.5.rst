@@ -293,6 +293,17 @@ They can also be combined with modifiers:
 
     Go to a certain page.
 
+  * ``highlight_selection``
+
+    Convert the current mouse text selection into a persistent PDF highlight
+    annotation. The highlight is rendered immediately but is only written to
+    the file on ``:write``. Backends that cannot create annotations show a
+    statusbar error. The default binding is ``A`` so that ``h`` remains
+    scroll-left; remap if desired::
+
+      unmap h
+      map h highlight_selection
+
   * ``jumplist``
 
     Move forwards/backwards in the jumplist. Pass ``forward`` as argument to
@@ -724,6 +735,14 @@ The settings described here can be changed with ``set``.
 
   * Value type: String
   * Default value: rgba(0,188,0,0.5)
+
+*highlight-annotation-color*
+  Defines the color used for newly created highlight annotations (see
+  ``highlight_selection``). Existing annotations keep the color they were
+  created with.
+
+  * Value type: String
+  * Default value: #FFEB3B
 
 *highlight-color*
   Defines the color that is used for highlighting parts of the document (e.g.:

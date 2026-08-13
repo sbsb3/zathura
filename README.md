@@ -4,6 +4,11 @@ zathura - a document viewer
 zathura is a highly customizable and functional document viewer based on the
 girara user interface library and several document libraries.
 
+With a supporting PDF backend (zathura-pdf-mupdf), text can be highlighted
+persistently: select with the mouse and press ``A`` (or ``:highlight``) to
+create a standard PDF highlight annotation. ``:write`` saves it into the file
+so other viewers can see it.
+
 Requirements
 ------------
 
