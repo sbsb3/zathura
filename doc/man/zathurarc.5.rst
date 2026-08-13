@@ -241,10 +241,10 @@ They can also be combined with modifiers:
     Adjust page width. Possible arguments are ``best-fit``, ``width`` and
     ``smart-width``. ``smart-width`` behaves like ``width`` but fits the
     viewport to the bounding box of the page's actual content (text/images)
-    rather than the full page, and pans so the content's left edge aligns
-    with the viewport's left edge. It requires the active document backend to
-    support content bounding box detection; if unavailable (e.g. no text
-    layer) it silently behaves like ``width``.
+    rather than the full page. The page stays horizontally centered, same as
+    ``width``. It requires the active document backend to support content
+    bounding box detection; if unavailable (e.g. no text layer) it silently
+    behaves like ``width``.
 
     ::
 
@@ -657,6 +657,17 @@ The settings described here can be changed with ``set``.
 
   * Value type: String
   * Default value: best-fit
+
+*smart-width-percentile*
+  Defines the percentile used to trim outlier pages when aggregating the
+  content bounding box for the ``smart-width`` adjust mode. The content bbox
+  is sampled from up to 10 evenly-spaced pages; the near edges are taken at
+  the ``(100 - smart-width-percentile)``-th percentile and the far edges at
+  the ``smart-width-percentile``-th percentile, trimming pages whose content
+  extent is an outlier (e.g. title pages, wide figures).
+
+  * Value type: Integer
+  * Default value: 90
 
 *page-mode*
   Defines the default page sizing mode when opening a document. Possible options

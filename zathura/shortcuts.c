@@ -140,9 +140,7 @@ bool sc_adjust_window(girara_session_t* session, girara_argument_t* argument, gi
     adjust_view(zathura);
 
     if (argument->n == ZATHURA_ADJUST_SMARTWIDTH) {
-      /* re-anchor horizontally on the content bbox; other modes rely on
-       * GtkAdjustment ratio preservation and must not have their scroll
-       * position reset here */
+      /* re-apply automatic position after the zoom change */
       position_set(zathura, -1, -1);
     }
   }

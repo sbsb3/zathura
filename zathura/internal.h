@@ -30,78 +30,57 @@ struct zathura_document_information_entry_s {
 const zathura_plugin_t* zathura_document_get_plugin(zathura_document_t* document);
 
 /**
- * Per-page content bbox cache used by the smart-width adjust mode. Each page
- * gets its own bbox (raw, unrotated page-point space) -- fit is computed
- * against the *current* page's own content, not an aggregate across the
- * document, since page layout (chapter openers, code listings, figures, ...)
- * routinely varies within a single book. See content-bbox.h for how it is
- * computed.
+ * Cached content bounding box used by the smart-width adjust mode. Stored in
+ * raw, unrotated page-point space and shared across all pages of the
+ * document. See content-bbox.h for how it is computed.
  *
  * @param document The document
- * @param page_id The page index
- * @return true if this page has already been queried (positive or negative
- *    result cached)
+ * @return The cached content bbox, or an all-zero rectangle if none is cached
  */
-bool zathura_document_smart_width_page_bbox_known(zathura_document_t* document, unsigned int page_id);
+zathura_rectangle_t zathura_document_get_smart_width_bbox(zathura_document_t* document);
 
 /**
- * Retrieves the cached content bbox for a page.
+ * Sets the cached smart-width content bbox.
  *
  * @param document The document
- * @param page_id The page index
- * @param bbox Set to the cached bbox on success
- * @return true if a usable bbox is cached for this page, false if unknown or
- *    known-negative (no usable content found on that page)
+ * @param bbox The bbox to cache
  */
-bool zathura_document_get_smart_width_page_bbox(zathura_document_t* document, unsigned int page_id,
-                                                zathura_rectangle_t* bbox);
+void zathura_document_set_smart_width_bbox(zathura_document_t* document, zathura_rectangle_t bbox);
 
 /**
- * Caches the content bbox for a page.
+ * Whether the smart-width content bbox has already been computed (whether or
+ * not a usable bbox was found) for this document.
  *
  * @param document The document
- * @param page_id The page index
- * @param bbox The bbox to cache, or NULL to cache a negative result (no
- *    usable content found on that page)
+ * @return true if content_bbox_ensure_computed() has already run
  */
-void zathura_document_set_smart_width_page_bbox(zathura_document_t* document, unsigned int page_id,
-                                                const zathura_rectangle_t* bbox);
+bool zathura_document_get_smart_width_computed(zathura_document_t* document);
 
 /**
- * Whether we've learned yet if the active plugin implements content-bbox
- * extraction at all (learned lazily from the first page ever queried).
+ * Marks whether the smart-width content bbox has been computed.
  *
  * @param document The document
- * @return true if known
+ * @param computed The new value
  */
-bool zathura_document_get_smart_width_supported_known(zathura_document_t* document);
+void zathura_document_set_smart_width_computed(zathura_document_t* document, bool computed);
 
 /**
- * Marks whether it's known if the plugin implements content-bbox extraction.
+ * Whether a usable smart-width content bbox was found (false means: no
+ * content-bbox-capable plugin function, or every sampled page was degenerate
+ * -- callers should fall back to plain width-fit behavior).
  *
  * @param document The document
- * @param known The new value
+ * @return true if the cached bbox is usable
  */
-void zathura_document_set_smart_width_supported_known(zathura_document_t* document, bool known);
+bool zathura_document_get_smart_width_available(zathura_document_t* document);
 
 /**
- * Whether the active plugin implements content-bbox extraction at all. Only
- * meaningful once zathura_document_get_smart_width_supported_known() is true;
- * lets callers short-circuit and stop querying entirely (rather than just
- * per-page) once a plugin has proven not to implement the hook.
+ * Marks whether a usable smart-width content bbox is available.
  *
  * @param document The document
- * @return true if the plugin implements it
+ * @param available The new value
  */
-bool zathura_document_get_smart_width_supported(zathura_document_t* document);
-
-/**
- * Marks whether the plugin implements content-bbox extraction.
- *
- * @param document The document
- * @param supported The new value
- */
-void zathura_document_set_smart_width_supported(zathura_document_t* document, bool supported);
+void zathura_document_set_smart_width_available(zathura_document_t* document, bool available);
 
 /**
  * Whether the one-time "smart-width unavailable" statusbar notice has

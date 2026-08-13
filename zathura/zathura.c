@@ -1163,7 +1163,7 @@ bool document_open(zathura_t* zathura, const char* path, const char* uri, const 
     const zathura_adjust_mode_t adjust_mode = zathura_document_get_adjust_mode(document);
     if (adjust_mode == ZATHURA_ADJUST_BESTFIT || adjust_mode == ZATHURA_ADJUST_WIDTH ||
         adjust_mode == ZATHURA_ADJUST_SMARTWIDTH) {
-      /* let the adjust mode pick horizontal alignment (center / content-left) */
+      /* let the adjust mode pick horizontal alignment (page center) */
       pos_x = -1;
     }
     position_set(zathura, pos_x, file_info.position_y);
@@ -1570,15 +1570,12 @@ bool position_set(zathura_t* zathura, double position_x, double position_y) {
     bool zoom_center = false;
     girara_setting_get(zathura->ui.session, "zoom-center", &zoom_center);
 
-    /* center horizontally */
-    if (adjust_mode == ZATHURA_ADJUST_BESTFIT || adjust_mode == ZATHURA_ADJUST_WIDTH || zoom_center == true) {
+    /* center the page. smart-width only changes the zoom (content width
+     * instead of media box); pinning to the content's left edge clips the
+     * facing page in a mirrored-margin book. Same as f5601584 on first open. */
+    if (adjust_mode == ZATHURA_ADJUST_BESTFIT || adjust_mode == ZATHURA_ADJUST_WIDTH ||
+        adjust_mode == ZATHURA_ADJUST_SMARTWIDTH || zoom_center == true) {
       position_x = 0.5;
-    } else if (adjust_mode == ZATHURA_ADJUST_SMARTWIDTH) {
-      /* align the content bbox's left edge with the viewport's left edge,
-       * instead of centering the (wider, margin-including) page; falls back
-       * to the already-computed centered position if this page has no
-       * usable content bbox of its own */
-      position_x = content_bbox_adjust_position_x(zathura, page_id, position_x);
     }
   }
 
@@ -1646,7 +1643,8 @@ bool adjust_view(zathura_t* zathura) {
     girara_setting_get(zathura->ui.session, "page-h-padding", &page_h_padding);
 
     double content_x1_px = 0, content_x2_px = 0;
-    if (content_bbox_get_extent_px(zathura, current_page, &content_x1_px, &content_x2_px) == true &&
+    if (content_bbox_ensure_computed(zathura, document) == true &&
+        content_bbox_get_extent_px(zathura, current_page, &content_x1_px, &content_x2_px) == true &&
         (content_x2_px - content_x1_px) > 0) {
       newzoom *= ((double)view_width - 2.0 * page_h_padding) / (content_x2_px - content_x1_px);
     } else {
