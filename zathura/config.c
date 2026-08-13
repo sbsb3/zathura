@@ -518,8 +518,6 @@ void config_load_default(zathura_t* zathura) {
   girara_setting_add(gsession, "zoom-min",              &uint_value,  UINT,   false, _("Zoom minimum"), NULL, NULL);
   uint_value = 1000;
   girara_setting_add(gsession, "zoom-max",              &uint_value,  UINT,   false, _("Zoom maximum"), NULL, NULL);
-  uint_value = 90;
-  girara_setting_add(gsession, "smart-width-percentile", &uint_value, UINT,   false, _("Percentile used to trim outlier pages when aggregating the smart-width content bounding box"), NULL, NULL);
   uint_value = ZATHURA_PAGE_CACHE_DEFAULT_SIZE;
   girara_setting_add(gsession, "page-cache-size",       &uint_value,  UINT,   true,  _("Maximum number of pages to keep in the cache"), NULL, NULL);
   uint_value = ZATHURA_PAGE_THUMBNAIL_DEFAULT_SIZE;

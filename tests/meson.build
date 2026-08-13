@@ -43,17 +43,6 @@ test('utils', utils,
   env: env
 )
 
-content_bbox = executable('test_content_bbox', files('test_content_bbox.c'),
-  dependencies: build_dependencies + test_dependencies,
-  include_directories: include_directories,
-  c_args: defines + flags
-)
-test('content_bbox', content_bbox,
-  timeout: 60*60,
-  protocol: 'tap',
-  env: env
-)
-
 xvfb = find_program('xvfb-run', required: get_option('tests-x11'))
 weston = find_program('weston', required: get_option('tests-wayland'))
 if xvfb.found() or weston.found()

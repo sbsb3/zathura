@@ -994,17 +994,6 @@ The settings described here can be changed with ``set``.
   * Value type: Boolean
   * Default value: false
 
-*smart-width-percentile*
-  Defines the percentile used to trim outlier pages when aggregating the
-  content bounding box for the ``smart-width`` adjust mode. The content bbox
-  is sampled from up to 10 evenly-spaced pages; the near edges are taken at
-  the ``(100 - smart-width-percentile)``-th percentile and the far edges at
-  the ``smart-width-percentile``-th percentile, trimming pages whose content
-  extent is an outlier (e.g. title pages, wide figures).
-
-  * Value type: Integer
-  * Default value: 90
-
 *show-directories*
   Defines if the directories should be displayed in completion.
 
