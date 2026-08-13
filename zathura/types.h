@@ -106,11 +106,12 @@ typedef struct zathura_image_buffer_s {
  * Adjust mode
  */
 typedef enum zathura_adjust_mode_e {
-  ZATHURA_ADJUST_NONE,       /**< No adjustment */
-  ZATHURA_ADJUST_BESTFIT,    /**< Adjust to best-fit */
-  ZATHURA_ADJUST_WIDTH,      /**< Adjust to width */
-  ZATHURA_ADJUST_INPUTBAR,   /**< Focusing the inputbar */
-  ZATHURA_ADJUST_MODE_NUMBER /**< Number of adjust modes */
+  ZATHURA_ADJUST_NONE,        /**< No adjustment */
+  ZATHURA_ADJUST_BESTFIT,     /**< Adjust to best-fit */
+  ZATHURA_ADJUST_WIDTH,       /**< Adjust to width */
+  ZATHURA_ADJUST_INPUTBAR,    /**< Focusing the inputbar */
+  ZATHURA_ADJUST_SMARTWIDTH,  /**< Adjust to width of page content (excludes margins) */
+  ZATHURA_ADJUST_MODE_NUMBER  /**< Number of adjust modes */
 } zathura_adjust_mode_t;
 
 typedef enum zathura_equal_mode_e {

@@ -119,6 +119,18 @@ typedef zathura_error_t (*zathura_plugin_page_get_label_t)(zathura_page_t* page,
  */
 typedef girara_list_t* (*zathura_plugin_page_get_signatures)(zathura_page_t* page, void* data, zathura_error_t* error);
 
+/**
+ * Get the bounding box of the page's actual content (e.g. text glyphs and,
+ * optionally, images), as opposed to the full page media box. Used by the
+ * smart-width adjust mode. The rectangle must be reported in the same raw,
+ * unrotated page-point coordinate space as page_search_text/page_get_text
+ * results (origin top-left, x right, y down), so that recalc_rectangle() can
+ * convert it. Optional: plugins that don't implement this cause smart-width
+ * to fall back to plain width-fit.
+ */
+typedef zathura_error_t (*zathura_plugin_page_get_content_bbox_t)(zathura_page_t* page, void* data,
+                                                                   zathura_rectangle_t* bbox);
+
 struct zathura_plugin_functions_s {
   /**
    * Opens a document
@@ -214,6 +226,11 @@ struct zathura_plugin_functions_s {
    * Get signatures.
    */
   zathura_plugin_page_get_signatures page_get_signatures;
+
+  /**
+   * Get the bounding box of the page's actual content. Optional.
+   */
+  zathura_plugin_page_get_content_bbox_t page_get_content_bbox;
 };
 
 typedef struct zathura_plugin_definition_s {

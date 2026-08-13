@@ -40,7 +40,9 @@
 #include "page-widget.h"
 #include "plugin.h"
 #include "adjustment.h"
+#include "content-bbox.h"
 #include "dbus-interface.h"
+#include "internal.h"
 #include "resources.h"
 #include "synctex.h"
 #include "content-type.h"
@@ -950,6 +952,8 @@ bool document_open(zathura_t* zathura, const char* path, const char* uri, const 
       zathura_document_set_adjust_mode(document, ZATHURA_ADJUST_BESTFIT);
     } else if (g_strcmp0(adjust_open, "width") == 0) {
       zathura_document_set_adjust_mode(document, ZATHURA_ADJUST_WIDTH);
+    } else if (g_strcmp0(adjust_open, "smart-width") == 0) {
+      zathura_document_set_adjust_mode(document, ZATHURA_ADJUST_SMARTWIDTH);
     } else {
       zathura_document_set_adjust_mode(document, ZATHURA_ADJUST_NONE);
     }
@@ -1545,8 +1549,13 @@ bool position_set(zathura_t* zathura, double position_x, double position_y) {
     girara_setting_get(zathura->ui.session, "zoom-center", &zoom_center);
 
     /* center horizontally */
-    if (adjust_mode == ZATHURA_ADJUST_BESTFIT || adjust_mode == ZATHURA_ADJUST_WIDTH || zoom_center == true) {
+    if (adjust_mode == ZATHURA_ADJUST_BESTFIT || adjust_mode == ZATHURA_ADJUST_WIDTH || zoom_center == true ||
+        (adjust_mode == ZATHURA_ADJUST_SMARTWIDTH && zathura_document_get_smart_width_available(document) == false)) {
       position_x = 0.5;
+    } else if (adjust_mode == ZATHURA_ADJUST_SMARTWIDTH) {
+      /* align the content bbox's left edge with the viewport's left edge,
+       * instead of centering the (wider, margin-including) page */
+      position_x = content_bbox_adjust_position_x(zathura, page_id, position_x);
     }
   }
 
@@ -1609,6 +1618,25 @@ bool adjust_view(zathura_t* zathura) {
     newzoom *= (double)view_width / (double)document_width;
   } else if (adjust_mode == ZATHURA_ADJUST_BESTFIT) {
     newzoom *= (double)view_height / (double)cell_height;
+  } else if (adjust_mode == ZATHURA_ADJUST_SMARTWIDTH) {
+    int page_h_padding = 1;
+    girara_setting_get(zathura->ui.session, "page-h-padding", &page_h_padding);
+
+    double content_x1_px = 0, content_x2_px = 0;
+    if (content_bbox_ensure_computed(zathura, document) == true &&
+        content_bbox_get_extent_px(zathura, current_page, &content_x1_px, &content_x2_px) == true &&
+        (content_x2_px - content_x1_px) > 0) {
+      newzoom *= ((double)view_width - 2.0 * page_h_padding) / (content_x2_px - content_x1_px);
+    } else {
+      /* No usable content bbox (no text layer, plugin doesn't implement it,
+       * ...): behave exactly like plain width-fit, notifying the user once. */
+      if (zathura_document_get_smart_width_notified(document) == false) {
+        girara_notify(zathura->ui.session, GIRARA_WARNING,
+                      _("smart-width: no page content detected, falling back to width fit"));
+        zathura_document_set_smart_width_notified(document, true);
+      }
+      newzoom *= (double)view_width / (double)document_width;
+    }
   } else {
     return true;
   }

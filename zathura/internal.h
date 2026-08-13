@@ -29,4 +29,75 @@ struct zathura_document_information_entry_s {
  */
 const zathura_plugin_t* zathura_document_get_plugin(zathura_document_t* document);
 
+/**
+ * Cached content bounding box used by the smart-width adjust mode. Stored in
+ * raw, unrotated page-point space and shared across all pages of the
+ * document. See content-bbox.h for how it is computed.
+ *
+ * @param document The document
+ * @return The cached content bbox, or an all-zero rectangle if none is cached
+ */
+zathura_rectangle_t zathura_document_get_smart_width_bbox(zathura_document_t* document);
+
+/**
+ * Sets the cached smart-width content bbox.
+ *
+ * @param document The document
+ * @param bbox The bbox to cache
+ */
+void zathura_document_set_smart_width_bbox(zathura_document_t* document, zathura_rectangle_t bbox);
+
+/**
+ * Whether the smart-width content bbox has already been computed (whether or
+ * not a usable bbox was found) for this document.
+ *
+ * @param document The document
+ * @return true if content_bbox_ensure_computed() has already run
+ */
+bool zathura_document_get_smart_width_computed(zathura_document_t* document);
+
+/**
+ * Marks whether the smart-width content bbox has been computed.
+ *
+ * @param document The document
+ * @param computed The new value
+ */
+void zathura_document_set_smart_width_computed(zathura_document_t* document, bool computed);
+
+/**
+ * Whether a usable smart-width content bbox was found (false means: no
+ * content-bbox-capable plugin function, or every sampled page was degenerate
+ * -- callers should fall back to plain width-fit behavior).
+ *
+ * @param document The document
+ * @return true if the cached bbox is usable
+ */
+bool zathura_document_get_smart_width_available(zathura_document_t* document);
+
+/**
+ * Marks whether a usable smart-width content bbox is available.
+ *
+ * @param document The document
+ * @param available The new value
+ */
+void zathura_document_set_smart_width_available(zathura_document_t* document, bool available);
+
+/**
+ * Whether the one-time "smart-width unavailable" statusbar notice has
+ * already fired for this document (avoids spamming on every resize-triggered
+ * adjust_view() call).
+ *
+ * @param document The document
+ * @return true if the notice has already fired
+ */
+bool zathura_document_get_smart_width_notified(zathura_document_t* document);
+
+/**
+ * Marks whether the smart-width fallback notice has fired.
+ *
+ * @param document The document
+ * @param notified The new value
+ */
+void zathura_document_set_smart_width_notified(zathura_document_t* document, bool notified);
+
 #endif // INTERNAL_H

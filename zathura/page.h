@@ -263,6 +263,19 @@ ZATHURA_PLUGIN_API bool zathura_page_label_is_number(zathura_page_t* page);
  */
 ZATHURA_PLUGIN_API girara_list_t* zathura_page_get_signatures(zathura_page_t* page, zathura_error_t* error);
 
+/**
+ * Get the bounding box of the page's actual content (text/images), as
+ * opposed to the full page media box. Used by the smart-width adjust mode.
+ * Optional: not every plugin implements this.
+ *
+ * @param page Page
+ * @param bbox Set to the content bbox (raw, unrotated page-point space) on
+ *    success
+ * @return ZATHURA_ERROR_OK on success, ZATHURA_ERROR_NOT_IMPLEMENTED if the
+ *    plugin doesn't support it, otherwise see zathura_error_t
+ */
+ZATHURA_PLUGIN_API zathura_error_t zathura_page_get_content_bbox(zathura_page_t* page, zathura_rectangle_t* bbox);
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(zathura_page_t, zathura_page_free)
 
 #endif // PAGE_H

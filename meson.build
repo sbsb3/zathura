@@ -12,8 +12,8 @@ version_array = version.split('.')
 #   signature changes, bump both ABI and API.
 # * zathura_plugin_definition_t: If the struct changes in an ABI-incompatible
 #   way, bump the ABI.
-plugin_api_version = '8'
-plugin_abi_version = '9'
+plugin_api_version = '9'
+plugin_abi_version = '10'
 
 conf_data = configuration_data()
 conf_data.set('ZVMAJOR', version_array[0])
@@ -123,6 +123,7 @@ sources = files(
   'zathura/commands.c',
   'zathura/completion.c',
   'zathura/config.c',
+  'zathura/content-bbox.c',
   'zathura/content-type.c',
   'zathura/database.c',
   'zathura/database-null.c',

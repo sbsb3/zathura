@@ -518,6 +518,8 @@ void config_load_default(zathura_t* zathura) {
   girara_setting_add(gsession, "zoom-min",              &uint_value,  UINT,   false, _("Zoom minimum"), NULL, NULL);
   uint_value = 1000;
   girara_setting_add(gsession, "zoom-max",              &uint_value,  UINT,   false, _("Zoom maximum"), NULL, NULL);
+  uint_value = 90;
+  girara_setting_add(gsession, "smart-width-percentile", &uint_value, UINT,   false, _("Percentile used to trim outlier pages when aggregating the smart-width content bounding box"), NULL, NULL);
   uint_value = ZATHURA_PAGE_CACHE_DEFAULT_SIZE;
   girara_setting_add(gsession, "page-cache-size",       &uint_value,  UINT,   true,  _("Maximum number of pages to keep in the cache"), NULL, NULL);
   uint_value = ZATHURA_PAGE_THUMBNAIL_DEFAULT_SIZE;
@@ -561,7 +563,7 @@ void config_load_default(zathura_t* zathura) {
   girara_setting_add(gsession, "search-hadjust",             &bool_value,  BOOLEAN, false, _("Center result horizontally"), NULL, NULL);
   bool_value = true;
   girara_setting_add(gsession, "render-loading",             &bool_value,  BOOLEAN, false, _("Render 'Loading ...'"), NULL, NULL);
-  girara_setting_add(gsession, "adjust-open",                "best-fit",   STRING,  false, _("Adjust to when opening file"), NULL, NULL);
+  girara_setting_add(gsession, "adjust-open",                "best-fit",   STRING,  false, _("Adjust to when opening file (best-fit, width, smart-width)"), NULL, NULL);
   girara_setting_add(gsession, "page-mode",                  "none",       STRING,  false, _("Default page mode (none, equal_width, equal_height)"), NULL, NULL);
   bool_value = false;
   girara_setting_add(gsession, "show-hidden",                &bool_value,  BOOLEAN, false, _("Show hidden files and directories"), NULL, NULL);
@@ -861,6 +863,7 @@ void config_load_default(zathura_t* zathura) {
   girara_argument_mapping_add(gsession, "up",                 UP);
   girara_argument_mapping_add(gsession, "best-fit",           ZATHURA_ADJUST_BESTFIT);
   girara_argument_mapping_add(gsession, "width",              ZATHURA_ADJUST_WIDTH);
+  girara_argument_mapping_add(gsession, "smart-width",        ZATHURA_ADJUST_SMARTWIDTH);
   girara_argument_mapping_add(gsession, "rotate-cw",          ROTATE_CW);
   girara_argument_mapping_add(gsession, "rotate-ccw",         ROTATE_CCW);
   girara_argument_mapping_add(gsession, "equal_none",         ZATHURA_EQUAL_NONE);

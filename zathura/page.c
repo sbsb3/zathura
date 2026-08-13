@@ -369,3 +369,17 @@ girara_list_t* zathura_page_get_signatures(zathura_page_t* page, zathura_error_t
 
   return g_steal_pointer(&ret);
 }
+
+zathura_error_t zathura_page_get_content_bbox(zathura_page_t* page, zathura_rectangle_t* bbox) {
+  if (page == NULL || page->document == NULL || bbox == NULL) {
+    return ZATHURA_ERROR_INVALID_ARGUMENTS;
+  }
+
+  const zathura_plugin_t* plugin              = zathura_document_get_plugin(page->document);
+  const zathura_plugin_functions_t* functions = zathura_plugin_get_functions(plugin);
+  if (functions->page_get_content_bbox == NULL) {
+    return ZATHURA_ERROR_NOT_IMPLEMENTED;
+  }
+
+  return functions->page_get_content_bbox(page, page->data, bbox);
+}
