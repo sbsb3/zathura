@@ -383,3 +383,18 @@ zathura_error_t zathura_page_get_content_bbox(zathura_page_t* page, zathura_rect
 
   return functions->page_get_content_bbox(page, page->data, bbox);
 }
+
+zathura_error_t zathura_page_add_highlight(zathura_page_t* page, zathura_rectangle_t rectangle, double red,
+                                           double green, double blue) {
+  if (page == NULL || page->document == NULL) {
+    return ZATHURA_ERROR_INVALID_ARGUMENTS;
+  }
+
+  const zathura_plugin_t* plugin              = zathura_document_get_plugin(page->document);
+  const zathura_plugin_functions_t* functions = zathura_plugin_get_functions(plugin);
+  if (functions->page_add_highlight == NULL) {
+    return ZATHURA_ERROR_NOT_IMPLEMENTED;
+  }
+
+  return functions->page_add_highlight(page, page->data, rectangle, red, green, blue);
+}

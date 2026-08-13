@@ -611,6 +611,19 @@ zathura_error_t zathura_document_save_as(zathura_document_t* document, const cha
   return functions->document_save_as(document, document->data, path);
 }
 
+zathura_error_t zathura_document_has_unsaved_changes(zathura_document_t* document, bool* unsaved) {
+  if (document == NULL || document->plugin == NULL || unsaved == NULL) {
+    return ZATHURA_ERROR_INVALID_ARGUMENTS;
+  }
+
+  const zathura_plugin_functions_t* functions = zathura_plugin_get_functions(document->plugin);
+  if (functions->document_has_unsaved_changes == NULL) {
+    return ZATHURA_ERROR_NOT_IMPLEMENTED;
+  }
+
+  return functions->document_has_unsaved_changes(document, document->data, unsaved);
+}
+
 girara_tree_node_t* zathura_document_index_generate(zathura_document_t* document, zathura_error_t* error) {
   if (document == NULL || document->plugin == NULL) {
     zathura_check_set_error(error, ZATHURA_ERROR_INVALID_ARGUMENTS);

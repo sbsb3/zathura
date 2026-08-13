@@ -311,6 +311,18 @@ ZATHURA_PLUGIN_API zathura_device_factors_t zathura_document_get_device_factors(
 ZATHURA_PLUGIN_API zathura_error_t zathura_document_save_as(zathura_document_t* document, const char* path);
 
 /**
+ * Report whether the document has unsaved modifications (for example
+ * annotations created since open or the last successful save). Optional: not
+ * every plugin implements this.
+ *
+ * @param document The document object
+ * @param unsaved Set to true if there are unsaved changes
+ * @return ZATHURA_ERROR_OK on success, ZATHURA_ERROR_NOT_IMPLEMENTED if the
+ *    plugin doesn't support it, otherwise see zathura_error_t
+ */
+ZATHURA_PLUGIN_API zathura_error_t zathura_document_has_unsaved_changes(zathura_document_t* document, bool* unsaved);
+
+/**
  * Generate the document index
  *
  * @param document The document object

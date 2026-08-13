@@ -4,6 +4,7 @@
 #define PLUGIN_API_H
 
 #include <cairo.h>
+#include <stdbool.h>
 
 #include "types.h"
 #include "page.h"
@@ -131,6 +132,25 @@ typedef girara_list_t* (*zathura_plugin_page_get_signatures)(zathura_page_t* pag
 typedef zathura_error_t (*zathura_plugin_page_get_content_bbox_t)(zathura_page_t* page, void* data,
                                                                    zathura_rectangle_t* bbox);
 
+/**
+ * Create a persistent highlight annotation from a text selection.
+ *
+ * @a rectangle is the selection in raw, unrotated page-point space (origin
+ * top-left, x right, y down), using the drag start as (x1, y1) and the drag
+ * end as (x2, y2). Optional: plugins that do not support writing annotations
+ * leave this NULL.
+ */
+typedef zathura_error_t (*zathura_plugin_page_add_highlight_t)(zathura_page_t* page, void* data,
+                                                               zathura_rectangle_t rectangle, double red, double green,
+                                                               double blue);
+
+/**
+ * Report whether the document has unsaved modifications (e.g. annotations
+ * created since open or last successful save). Optional.
+ */
+typedef zathura_error_t (*zathura_plugin_document_has_unsaved_changes_t)(zathura_document_t* document, void* data,
+                                                                         bool* unsaved);
+
 struct zathura_plugin_functions_s {
   /**
    * Opens a document
@@ -231,6 +251,16 @@ struct zathura_plugin_functions_s {
    * Get the bounding box of the page's actual content. Optional.
    */
   zathura_plugin_page_get_content_bbox_t page_get_content_bbox;
+
+  /**
+   * Create a persistent highlight annotation from a text selection. Optional.
+   */
+  zathura_plugin_page_add_highlight_t page_add_highlight;
+
+  /**
+   * Report whether the document has unsaved modifications. Optional.
+   */
+  zathura_plugin_document_has_unsaved_changes_t document_has_unsaved_changes;
 };
 
 typedef struct zathura_plugin_definition_s {

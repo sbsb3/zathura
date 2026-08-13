@@ -3,7 +3,7 @@
 # branch) to the system, in the correct order.
 #
 # This OVERWRITES your system zathura and PDF plugins. It bumps the plugin
-# ABI/API (plugin_api_version 8->9, plugin_abi_version 9->10), so any other
+# ABI/API (plugin_api_version 9->10, plugin_abi_version 10->11), so any other
 # zathura PDF plugin you have installed that isn't rebuilt against these
 # headers will silently stop loading until it's rebuilt too.
 #

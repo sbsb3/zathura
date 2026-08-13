@@ -276,6 +276,24 @@ ZATHURA_PLUGIN_API girara_list_t* zathura_page_get_signatures(zathura_page_t* pa
  */
 ZATHURA_PLUGIN_API zathura_error_t zathura_page_get_content_bbox(zathura_page_t* page, zathura_rectangle_t* bbox);
 
+/**
+ * Create a persistent highlight annotation covering the given text selection.
+ * The rectangle uses the same page-point space as zathura_page_get_text()
+ * (origin top-left); (x1, y1) is the selection start and (x2, y2) the end.
+ * Optional: not every plugin implements this.
+ *
+ * @param page Page
+ * @param rectangle Selection start/end in page-point space
+ * @param red Red component in [0, 1]
+ * @param green Green component in [0, 1]
+ * @param blue Blue component in [0, 1]
+ * @return ZATHURA_ERROR_OK on success, ZATHURA_ERROR_NOT_IMPLEMENTED if the
+ *    plugin doesn't support it, ZATHURA_ERROR_INVALID_ARGUMENTS if the
+ *    selection contains no text, otherwise see zathura_error_t
+ */
+ZATHURA_PLUGIN_API zathura_error_t zathura_page_add_highlight(zathura_page_t* page, zathura_rectangle_t rectangle,
+                                                              double red, double green, double blue);
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(zathura_page_t, zathura_page_free)
 
 #endif // PAGE_H
