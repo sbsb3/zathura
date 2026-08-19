@@ -1570,12 +1570,15 @@ bool position_set(zathura_t* zathura, double position_x, double position_y) {
     bool zoom_center = false;
     girara_setting_get(zathura->ui.session, "zoom-center", &zoom_center);
 
-    /* center the page. smart-width only changes the zoom (content width
-     * instead of media box); pinning to the content's left edge clips the
-     * facing page in a mirrored-margin book. Same as f5601584 on first open. */
-    if (adjust_mode == ZATHURA_ADJUST_BESTFIT || adjust_mode == ZATHURA_ADJUST_WIDTH ||
-        adjust_mode == ZATHURA_ADJUST_SMARTWIDTH || zoom_center == true) {
+    if (adjust_mode == ZATHURA_ADJUST_BESTFIT || adjust_mode == ZATHURA_ADJUST_WIDTH || zoom_center == true) {
       position_x = 0.5;
+    } else if (adjust_mode == ZATHURA_ADJUST_SMARTWIDTH) {
+      /* Pin the content column's left edge to the viewport's left edge instead
+       * of centering the (wider, margin-including) page. Safe for every page
+       * at once because each page is drawn shifted onto the shared column
+       * (content_bbox_page_align_offset_px()). Falls back to the computed
+       * centered position if no column is available. */
+      position_x = content_bbox_adjust_position_x(zathura, page_id, position_x);
     }
   }
 

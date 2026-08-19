@@ -377,6 +377,15 @@ static void zathura_document_widget_size_allocate(GtkWidget* widget, int width, 
     gtk_adjustment_set_page_size(priv->vadjustment, height);
     gtk_adjustment_set_page_increment(priv->hadjustment, width * 0.9);
     gtk_adjustment_set_page_increment(priv->vadjustment, height * 0.9);
+
+    /* Smart-width only learns its content column inside the adjust_view() above,
+     * so whatever position_set() ran during document open had nothing to align
+     * against. Re-run it here rather than from adjust_view(): the position is a
+     * ratio measured from the middle of the viewport, so it can only be
+     * computed once the page size is final. */
+    if (z_document != NULL && zathura_document_get_adjust_mode(z_document) == ZATHURA_ADJUST_SMARTWIDTH) {
+      position_set(priv->zathura, -1, -1);
+    }
   }
 
   if (priv->grid != NULL) {

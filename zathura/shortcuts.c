@@ -140,8 +140,18 @@ bool sc_adjust_window(girara_session_t* session, girara_argument_t* argument, gi
     adjust_view(zathura);
 
     if (argument->n == ZATHURA_ADJUST_SMARTWIDTH) {
-      /* re-apply automatic position after the zoom change */
+      /* re-apply the automatic alignment against the new zoom */
       position_set(zathura, -1, -1);
+    }
+
+    /* smart-width draws each page shifted onto the shared content column, so
+     * entering or leaving it changes the drawing even when the zoom doesn't */
+    zathura_document_t* document = zathura_get_document(zathura);
+    if (document != NULL && zathura->pages != NULL) {
+      const unsigned int number_of_pages = zathura_document_get_number_of_pages(document);
+      for (unsigned int page_id = 0; page_id < number_of_pages; page_id++) {
+        gtk_widget_queue_draw(zathura->pages[page_id]);
+      }
     }
   }
 

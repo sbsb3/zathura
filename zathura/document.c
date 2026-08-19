@@ -50,6 +50,12 @@ struct zathura_document_s {
   bool smart_width_computed;            /**< Whether smart_width_bbox has been computed for this document */
   bool smart_width_available;           /**< Whether a usable content bbox was found */
   bool smart_width_notified;            /**< Whether the smart-width fallback notice has already fired */
+  /** Per-page content bbox cache keyed by page index (GUINT_TO_POINTER) ->
+   * heap-allocated zathura_rectangle_t* (raw, unrotated page-point space), or
+   * NULL to cache a negative result. Used to align every page's content column
+   * on the same document x, so mirrored inner/outer margins don't make the
+   * text jump left and right from page to page. Created lazily. */
+  GHashTable* smart_width_page_bbox;
 
   /**
    * Document pages
@@ -207,6 +213,10 @@ zathura_error_t zathura_document_free(zathura_document_t* document) {
 
   zathura_error_t error = functions->document_free(document, document->data);
 
+  if (document->smart_width_page_bbox != NULL) {
+    g_hash_table_unref(document->smart_width_page_bbox);
+  }
+
   g_free(document->file_path);
   g_free(document->uri);
   g_free(document->basename);
@@ -349,6 +359,53 @@ void zathura_document_set_position_y(zathura_document_t* document, double positi
   }
 
   document->position_y = position_y;
+}
+
+bool zathura_document_smart_width_page_bbox_known(zathura_document_t* document, unsigned int page_id) {
+  if (document == NULL || document->smart_width_page_bbox == NULL) {
+    return false;
+  }
+
+  return g_hash_table_contains(document->smart_width_page_bbox, GUINT_TO_POINTER(page_id));
+}
+
+bool zathura_document_get_smart_width_page_bbox(zathura_document_t* document, unsigned int page_id,
+                                                zathura_rectangle_t* bbox) {
+  if (document == NULL || document->smart_width_page_bbox == NULL) {
+    return false;
+  }
+
+  const zathura_rectangle_t* cached =
+      g_hash_table_lookup(document->smart_width_page_bbox, GUINT_TO_POINTER(page_id));
+  if (cached == NULL) {
+    return false;
+  }
+
+  if (bbox != NULL) {
+    *bbox = *cached;
+  }
+
+  return true;
+}
+
+void zathura_document_set_smart_width_page_bbox(zathura_document_t* document, unsigned int page_id,
+                                                const zathura_rectangle_t* bbox) {
+  if (document == NULL) {
+    return;
+  }
+
+  if (document->smart_width_page_bbox == NULL) {
+    document->smart_width_page_bbox = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
+  }
+
+  zathura_rectangle_t* stored = NULL;
+  if (bbox != NULL) {
+    stored  = g_new(zathura_rectangle_t, 1);
+    *stored = *bbox;
+  }
+
+  /* a NULL value caches a negative result (no usable content on this page) */
+  g_hash_table_insert(document->smart_width_page_bbox, GUINT_TO_POINTER(page_id), stored);
 }
 
 zathura_rectangle_t zathura_document_get_smart_width_bbox(zathura_document_t* document) {

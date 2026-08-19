@@ -59,11 +59,10 @@ static void test_aggregate_single_rect(void) {
 
 static void test_aggregate_trims_outlier(void) {
   /* Two "typical" pages and one wide/tall outlier page (e.g. a landscape
-   * figure). At the 90th percentile, the outlier's far edges should be
-   * pulled in and the near edges should be pulled in too -- x and y are
-   * aggregated independently, so this also confirms the aggregation is a
-   * full rectangle (needed for recalc_rectangle()'s rotation handling), not
-   * just a width. */
+   * figure). At the 90th percentile, the outlier must not dominate either the
+   * origin or the extent -- x and y are aggregated independently, so this also
+   * confirms the aggregation is a full rectangle (needed for
+   * recalc_rectangle()'s rotation handling), not just a width. */
   const zathura_rectangle_t rects[] = {
       {.x1 = 10, .y1 = 10, .x2 = 100, .y2 = 200},
       {.x1 = 12, .y1 = 12, .x2 = 105, .y2 = 205},
@@ -72,22 +71,39 @@ static void test_aggregate_trims_outlier(void) {
 
   const zathura_rectangle_t agg = content_bbox_aggregate(rects, 3, 90.0);
 
-  /* near edges (x1/y1) use the (100-90)=10th percentile: rank=0.2 of
+  /* origin (x1/y1) uses the (100-90)=10th percentile: rank=0.2 of
    * [10,12,50] -> 10 + 0.2*(12-10) = 10.4 */
   g_assert_cmpfloat_with_epsilon(agg.x1, 10.4, EPS);
   g_assert_cmpfloat_with_epsilon(agg.y1, 10.4, EPS);
 
-  /* far edges (x2/y2) use the 90th percentile: rank=1.8 of [100,105,300]
-   * -> 105 + 0.8*(300-105) = 261; [200,205,400] -> 205 + 0.8*(400-205) = 361 */
-  g_assert_cmpfloat_with_epsilon(agg.x2, 261.0, EPS);
-  g_assert_cmpfloat_with_epsilon(agg.y2, 361.0, EPS);
+  /* extents use the 90th percentile of the *widths* [90,93,250]: rank=1.8
+   * -> 93 + 0.8*(250-93) = 218.6, and of the heights [190,193,350]
+   * -> 193 + 0.8*(350-193) = 318.6; the far edges are origin + extent */
+  g_assert_cmpfloat_with_epsilon(agg.x2, 10.4 + 218.6, EPS);
+  g_assert_cmpfloat_with_epsilon(agg.y2, 10.4 + 318.6, EPS);
 
-  /* the outlier's extreme edges (50 and 300/400) must be trimmed away, not
-   * dominate the aggregate */
+  /* the outlier's extremes must be trimmed away, not dominate the aggregate */
   g_assert_cmpfloat(agg.x2, <, 300.0);
   g_assert_cmpfloat(agg.y2, <, 400.0);
   g_assert_cmpfloat(agg.x1, <, 50.0);
   g_assert_cmpfloat(agg.y1, <, 50.0);
+}
+
+static void test_aggregate_mirrored_margins(void) {
+  /* A book with mirrored inner/outer margins: identical 415pt text columns
+   * that start 18pt further right on every other page. The column must come
+   * out 415pt wide (each page is drawn shifted onto it), not 433pt -- folding
+   * the mirror offset into the column is exactly the bug that left an
+   * alternating empty strip down one side of the viewport. */
+  const zathura_rectangle_t rects[] = {
+      {.x1 = 36, .y1 = 50, .x2 = 451, .y2 = 700}, {.x1 = 54, .y1 = 50, .x2 = 469, .y2 = 700},
+      {.x1 = 36, .y1 = 50, .x2 = 451, .y2 = 700}, {.x1 = 54, .y1 = 50, .x2 = 469, .y2 = 700},
+  };
+
+  const zathura_rectangle_t agg = content_bbox_aggregate(rects, 4, 90.0);
+
+  g_assert_cmpfloat_with_epsilon(agg.x1, 36.0, EPS);
+  g_assert_cmpfloat_with_epsilon(agg.x2 - agg.x1, 415.0, EPS);
 }
 
 int main(int argc, char* argv[]) {
@@ -98,5 +114,6 @@ int main(int argc, char* argv[]) {
   g_test_add_func("/content-bbox/percentile_ten_values", test_percentile_ten_values);
   g_test_add_func("/content-bbox/aggregate_single_rect", test_aggregate_single_rect);
   g_test_add_func("/content-bbox/aggregate_trims_outlier", test_aggregate_trims_outlier);
+  g_test_add_func("/content-bbox/aggregate_mirrored_margins", test_aggregate_mirrored_margins);
   return g_test_run();
 }

@@ -241,10 +241,14 @@ They can also be combined with modifiers:
     Adjust page width. Possible arguments are ``best-fit``, ``width`` and
     ``smart-width``. ``smart-width`` behaves like ``width`` but fits the
     viewport to the bounding box of the page's actual content (text/images)
-    rather than the full page. The page stays horizontally centered, same as
-    ``width``. It requires the active document backend to support content
-    bounding box detection; if unavailable (e.g. no text layer) it silently
-    behaves like ``width``.
+    rather than the full page, and pins that content column to the left edge
+    of the viewport. Books usually mirror their inner and outer margins, so
+    the text sits further right on every other page; each page is therefore
+    drawn shifted onto one shared column, which keeps the text from jumping
+    left and right as you page through the document. It requires the active
+    document backend to support content bounding box detection; if unavailable
+    (e.g. no text layer) it silently behaves like ``width``. Pages are not
+    realigned while the document is rotated by 90 or 270 degrees.
 
     ::
 
@@ -661,10 +665,12 @@ The settings described here can be changed with ``set``.
 *smart-width-percentile*
   Defines the percentile used to trim outlier pages when aggregating the
   content bounding box for the ``smart-width`` adjust mode. The content bbox
-  is sampled from up to 10 evenly-spaced pages; the near edges are taken at
-  the ``(100 - smart-width-percentile)``-th percentile and the far edges at
-  the ``smart-width-percentile``-th percentile, trimming pages whose content
-  extent is an outlier (e.g. title pages, wide figures).
+  is sampled from up to 10 evenly-spaced pages; the column's origin is taken
+  at the ``(100 - smart-width-percentile)``-th percentile and its width and
+  height at the ``smart-width-percentile``-th percentile, trimming pages whose
+  content extent is an outlier (e.g. title pages, wide figures). Lower it to
+  ignore more outliers at the cost of clipping them; raise it to 100 to fit
+  every sampled page.
 
   * Value type: Integer
   * Default value: 90

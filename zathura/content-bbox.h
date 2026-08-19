@@ -25,13 +25,17 @@ double percentile_linear(const double* values, size_t n, double p);
 /**
  * Aggregates a set of per-page content bounding boxes (e.g. sampled across a
  * document) into a single representative bounding box, trimming outliers.
- * Each edge is aggregated independently, with the tail direction chosen so
- * that the result stays a well-formed rectangle: x1/y1 (the near edges) use
- * the (100-percentile)th percentile (trims stray-far-left/top pages), x2/y2
- * (the far edges) use the percentile-th percentile (trims stray-wide/tall
- * pages). The resulting content width/height are always derived from the
- * aggregated edges, never computed separately, so the rectangle is always
- * self-consistent.
+ * x1/y1 (the origin) use the (100-percentile)th percentile, trimming
+ * stray-far-left/top pages; the width and height use the percentile-th
+ * percentile, trimming stray-wide/tall pages. x2/y2 are then derived from
+ * origin + extent, so the result is always a well-formed rectangle.
+ *
+ * Note that the extents are aggregated, not the far edges: every page is drawn
+ * shifted so that its own content starts at the column's left edge (see
+ * content_bbox_page_align_offset_px()), so the column only has to be as wide as
+ * the widest content, not as wide as the span from the leftmost to the
+ * rightmost. Aggregating x2 directly would fold each book's mirrored-margin
+ * offset into the column and waste that much of the viewport.
  *
  * @param rects Array of per-page content bboxes, raw unrotated page-point
  *    space. Must contain only well-formed rectangles (x2>x1, y2>y1).
@@ -58,6 +62,28 @@ zathura_rectangle_t content_bbox_aggregate(const zathura_rectangle_t* rects, siz
  *    text layer) and callers should fall back to plain width-fit
  */
 bool content_bbox_ensure_computed(zathura_t* zathura, zathura_document_t* document);
+
+/**
+ * Returns how far, in widget pixels at the current zoom, a page has to be
+ * drawn horizontally shifted for its content to line up with the document's
+ * shared content column.
+ *
+ * Books typically use mirrored inner/outer margins, so the text sits ~18pt
+ * further right on recto pages than on verso ones. Without this shift the text
+ * appears to jump left, right, left, right as you page through the document,
+ * and the column has to be widened by the mirror offset to keep both sides
+ * from being clipped. Shifting each page instead lets every page share one
+ * horizontal scroll position.
+ *
+ * Returns 0 (no shift) unless the document is in smart-width mode with a usable
+ * content column, and the rotation is 0 or 180.
+ *
+ * @param zathura The zathura instance
+ * @param page_id The page to compute the shift for
+ * @return The horizontal shift in widget pixels; 0 if the page should not be
+ *    shifted
+ */
+double content_bbox_page_align_offset_px(zathura_t* zathura, unsigned int page_id);
 
 /**
  * Returns the cached smart-width content bbox's horizontal extent, in

@@ -53,26 +53,78 @@ zathura_rectangle_t content_bbox_aggregate(const zathura_rectangle_t* rects, siz
     return result;
   }
 
-  g_autofree double* x1s = g_new(double, n);
-  g_autofree double* y1s = g_new(double, n);
-  g_autofree double* x2s = g_new(double, n);
-  g_autofree double* y2s = g_new(double, n);
+  g_autofree double* x1s     = g_new(double, n);
+  g_autofree double* y1s     = g_new(double, n);
+  g_autofree double* widths  = g_new(double, n);
+  g_autofree double* heights = g_new(double, n);
 
   for (size_t i = 0; i < n; i++) {
-    x1s[i] = rects[i].x1;
-    y1s[i] = rects[i].y1;
-    x2s[i] = rects[i].x2;
-    y2s[i] = rects[i].y2;
+    x1s[i]     = rects[i].x1;
+    y1s[i]     = rects[i].y1;
+    widths[i]  = rects[i].x2 - rects[i].x1;
+    heights[i] = rects[i].y2 - rects[i].y1;
   }
 
-  /* Near edges: trim the far-outlier tail by taking the low percentile.
-   * Far edges: trim the far-outlier tail by taking the high percentile. */
+  /* Near edges: trim the stray-far-left/top tail by taking the low percentile.
+   * Extents: trim the stray-wide/tall tail by taking the high percentile.
+   *
+   * The far edges are *derived* from origin + extent rather than aggregated
+   * directly, because every page is drawn shifted so its own content starts at
+   * the column's left edge (see content_bbox_page_align_offset_px()). What the
+   * column has to be wide enough for is therefore the widest content, not the
+   * rightmost -- aggregating x2 directly would add the mirrored-margin offset
+   * to the column width and waste that much of the viewport. */
   result.x1 = percentile_linear(x1s, n, 100.0 - percentile);
   result.y1 = percentile_linear(y1s, n, 100.0 - percentile);
-  result.x2 = percentile_linear(x2s, n, percentile);
-  result.y2 = percentile_linear(y2s, n, percentile);
+  result.x2 = result.x1 + percentile_linear(widths, n, percentile);
+  result.y2 = result.y1 + percentile_linear(heights, n, percentile);
 
   return result;
+}
+
+/**
+ * Looks up a single page's content bbox, computing and caching it on first
+ * use. Cheap enough to call from the draw path once cached.
+ */
+static bool content_bbox_page_bbox(zathura_document_t* document, unsigned int page_id, zathura_rectangle_t* bbox,
+                                   zathura_error_t* error) {
+  if (error != NULL) {
+    *error = ZATHURA_ERROR_OK;
+  }
+
+  if (zathura_document_smart_width_page_bbox_known(document, page_id) == true) {
+    return zathura_document_get_smart_width_page_bbox(document, page_id, bbox);
+  }
+
+  zathura_page_t* page = zathura_document_get_page(document, page_id);
+  if (page == NULL) {
+    return false;
+  }
+
+  zathura_rectangle_t computed = {0, 0, 0, 0};
+  const zathura_error_t rc     = zathura_page_get_content_bbox(page, &computed);
+  if (error != NULL) {
+    *error = rc;
+  }
+
+  if (rc == ZATHURA_ERROR_NOT_IMPLEMENTED) {
+    /* not a per-page property: the plugin has no such hook at all, so don't
+     * poison the cache with a negative result for this one page */
+    return false;
+  }
+
+  if (rc != ZATHURA_ERROR_OK || computed.x2 <= computed.x1 || computed.y2 <= computed.y1) {
+    /* degenerate: blank page, scanned page without a text layer, ... */
+    zathura_document_set_smart_width_page_bbox(document, page_id, NULL);
+    return false;
+  }
+
+  zathura_document_set_smart_width_page_bbox(document, page_id, &computed);
+  if (bbox != NULL) {
+    *bbox = computed;
+  }
+
+  return true;
 }
 
 bool content_bbox_ensure_computed(zathura_t* zathura, zathura_document_t* document) {
@@ -103,22 +155,13 @@ bool content_bbox_ensure_computed(zathura_t* zathura, zathura_document_t* docume
                                         : (unsigned int)((double)i * (number_of_pages - 1) / (double)(sample_count - 1) +
                                                          0.5);
 
-    zathura_page_t* page = zathura_document_get_page(document, page_index);
-    if (page == NULL) {
-      continue;
-    }
-
-    zathura_rectangle_t bbox   = {0, 0, 0, 0};
-    const zathura_error_t rc = zathura_page_get_content_bbox(page, &bbox);
-    if (rc == ZATHURA_ERROR_NOT_IMPLEMENTED) {
-      /* Plugin doesn't support this at all -- no point sampling further. */
-      break;
-    }
-    if (rc != ZATHURA_ERROR_OK) {
-      continue;
-    }
-    if (bbox.x2 <= bbox.x1 || bbox.y2 <= bbox.y1) {
-      /* Degenerate rect (e.g. a blank/scanned-without-OCR page) */
+    zathura_rectangle_t bbox = {0, 0, 0, 0};
+    zathura_error_t rc       = ZATHURA_ERROR_OK;
+    if (content_bbox_page_bbox(document, page_index, &bbox, &rc) == false) {
+      if (rc == ZATHURA_ERROR_NOT_IMPLEMENTED) {
+        /* Plugin doesn't support this at all -- no point sampling further. */
+        break;
+      }
       continue;
     }
 
@@ -141,6 +184,47 @@ bool content_bbox_ensure_computed(zathura_t* zathura, zathura_document_t* docume
   zathura_document_set_smart_width_available(document, true);
 
   return true;
+}
+
+double content_bbox_page_align_offset_px(zathura_t* zathura, unsigned int page_id) {
+  g_return_val_if_fail(zathura != NULL, 0.0);
+
+  zathura_document_t* document = zathura_get_document(zathura);
+  if (document == NULL || zathura_document_get_adjust_mode(document) != ZATHURA_ADJUST_SMARTWIDTH ||
+      zathura_document_get_smart_width_available(document) == false) {
+    return 0.0;
+  }
+
+  /* At 90/270 the horizontal extent comes from the bbox's y edges and the
+   * shift would have to move vertically instead; not handled, the mode still
+   * zooms correctly there (recalc_rectangle() rotates), it just doesn't
+   * realign the columns. */
+  const unsigned int rotation = zathura_document_get_rotation(document);
+  if (rotation != 0 && rotation != 180) {
+    return 0.0;
+  }
+
+  zathura_rectangle_t bbox = {0, 0, 0, 0};
+  if (content_bbox_page_bbox(document, page_id, &bbox, NULL) == false) {
+    return 0.0;
+  }
+
+  const zathura_rectangle_t column = zathura_document_get_smart_width_bbox(document);
+  const double column_width        = column.x2 - column.x1;
+  const double page_width          = bbox.x2 - bbox.x1;
+  if (column_width <= 0 || page_width <= 0) {
+    return 0.0;
+  }
+
+  /* Align this page's content with the shared column. Pages wider than the
+   * column can't fit whatever we do, so centre the overflow instead of letting
+   * it all fall off one side. */
+  double shift = (rotation == 180) ? (bbox.x2 - column.x2) : (column.x1 - bbox.x1);
+  if (page_width > column_width) {
+    shift -= (page_width - column_width) / 2.0;
+  }
+
+  return shift * zathura_document_get_scale(document);
 }
 
 bool content_bbox_get_extent_px(zathura_t* zathura, unsigned int page_id, double* x1_px, double* x2_px) {
@@ -179,20 +263,23 @@ double content_bbox_adjust_position_x(zathura_t* zathura, unsigned int page_id, 
 
   const double shiftx_px = x1_px - (double)page_h_padding;
 
-  unsigned int cell_height = 0, cell_width = 0, doc_height = 0, doc_width = 0;
-  zathura_document_widget_get_cell_size(ZATHURA_DOCUMENT_WIDGET(zathura->ui.document_widget), page_id, &cell_height,
-                                        &cell_width);
+  unsigned int doc_height = 0, doc_width = 0;
   zathura_document_widget_get_document_size(ZATHURA_DOCUMENT_WIDGET(zathura->ui.document_widget), &doc_height,
                                             &doc_width);
   if (doc_width == 0) {
     return fallback_pos_x;
   }
 
-  /* Base position: page's top-left aligned with the viewport's top-left,
-   * then shift right by the content bbox's own left offset within the page
-   * cell -- same idiom link_goto_dest() uses for link targets. */
+  /* Base position: page's left edge aligned with the viewport's left edge,
+   * then shift right by the content column's own left offset within the page.
+   * position_x is a fraction of the document width, so pixels convert by
+   * dividing by doc_width -- the same conversion link_goto_dest() makes for
+   * link targets. */
   double pos_x = 0, unused_pos_y = 0;
   page_number_to_position(zathura, page_id, 0.0, 0.0, &pos_x, &unused_pos_y);
 
-  return pos_x + shiftx_px * (double)cell_width / (double)doc_width;
+  girara_debug("smart-width: aligning page %u, content column starts at %.2fpx of a %upx wide document", page_id, x1_px,
+               doc_width);
+
+  return pos_x + shiftx_px / (double)doc_width;
 }

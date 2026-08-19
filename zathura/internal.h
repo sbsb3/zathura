@@ -30,6 +30,42 @@ struct zathura_document_information_entry_s {
 const zathura_plugin_t* zathura_document_get_plugin(zathura_document_t* document);
 
 /**
+ * Whether this page's content bbox has already been looked up (whether or not
+ * a usable one was found). Distinguishes "cached negative result" from "never
+ * queried", which zathura_document_get_smart_width_page_bbox() alone cannot.
+ *
+ * @param document The document
+ * @param page_id The page index
+ * @return true if the page has already been queried
+ */
+bool zathura_document_smart_width_page_bbox_known(zathura_document_t* document, unsigned int page_id);
+
+/**
+ * Returns a single page's cached content bbox, in raw unrotated page-point
+ * space. Used by smart-width to shift each page so that its content column
+ * lines up with every other page's -- books with mirrored inner/outer margins
+ * otherwise make the text jump left and right on alternating pages.
+ *
+ * @param document The document
+ * @param page_id The page index
+ * @param bbox Set to the cached bbox on success; may be NULL
+ * @return true if a usable bbox is cached for this page
+ */
+bool zathura_document_get_smart_width_page_bbox(zathura_document_t* document, unsigned int page_id,
+                                                zathura_rectangle_t* bbox);
+
+/**
+ * Caches a single page's content bbox. Pass NULL to cache a negative result
+ * (no usable content found), so the page isn't queried again.
+ *
+ * @param document The document
+ * @param page_id The page index
+ * @param bbox The bbox to cache, or NULL
+ */
+void zathura_document_set_smart_width_page_bbox(zathura_document_t* document, unsigned int page_id,
+                                                const zathura_rectangle_t* bbox);
+
+/**
  * Cached content bounding box used by the smart-width adjust mode. Stored in
  * raw, unrotated page-point space and shared across all pages of the
  * document. See content-bbox.h for how it is computed.

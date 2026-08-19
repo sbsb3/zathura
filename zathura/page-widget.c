@@ -11,6 +11,7 @@
 #include <glib/gi18n.h>
 #include <math.h>
 
+#include "content-bbox.h"
 #include "links-internal.h"
 #include "page.h"
 #include "render.h"
@@ -524,6 +525,22 @@ static zathura_device_factors_t get_safe_device_factors(cairo_surface_t* surface
   return factors;
 }
 
+/**
+ * Horizontal shift, in widget pixels, that smart-width wants this page drawn
+ * at so its content column lines up with every other page's. Zero in every
+ * other mode. Everything drawn in page-widget coordinates -- the rendered
+ * surface, links, selections, highlights -- moves together, and pointer
+ * coordinates coming back in are shifted the other way, so nothing else in the
+ * widget has to know about it.
+ */
+static double page_widget_align_offset(ZathuraPageWidgetPrivate* priv) {
+  if (priv == NULL || priv->zathura == NULL || priv->page == NULL) {
+    return 0.0;
+  }
+
+  return content_bbox_page_align_offset_px(priv->zathura, zathura_page_get_index(priv->page));
+}
+
 static void cb_page_draw(GtkDrawingArea* GIRARA_UNUSED(area), cairo_t* cairo, int width, int height, gpointer data) {
   GtkWidget* widget              = GTK_WIDGET(data);
   ZathuraPageWidget* page        = ZATHURA_PAGE_WIDGET(widget);
@@ -533,6 +550,11 @@ static void cb_page_draw(GtkDrawingArea* GIRARA_UNUSED(area), cairo_t* cairo, in
   zathura_document_t* document   = zathura_page_get_document(priv->page);
   const unsigned int page_height = (unsigned int)height;
   const unsigned int page_width  = (unsigned int)width;
+
+  const double align_dx = page_widget_align_offset(priv);
+  if (align_dx != 0.0) {
+    cairo_translate(cairo, align_dx, 0);
+  }
 
   bool surface_exists = priv->surface != NULL || priv->thumbnail != NULL;
 
@@ -575,6 +597,9 @@ static void cb_page_draw(GtkDrawingArea* GIRARA_UNUSED(area), cairo_t* cairo, in
 
     if (priv->surface != NULL) {
       cairo_set_source_surface(cairo, priv->surface, 0, 0);
+      /* a shifted page leaves a sliver of the widget uncovered on one side;
+       * padding out the edge pixels fills it with the page's own paper colour */
+      cairo_pattern_set_extend(cairo_get_source(cairo), CAIRO_EXTEND_PAD);
       cairo_paint(cairo);
       cairo_restore(cairo);
     } else {
@@ -745,6 +770,7 @@ static void cb_page_draw(GtkDrawingArea* GIRARA_UNUSED(area), cairo_t* cairo, in
       if (rendered != NULL) {
         zathura_page_widget_update_surface(page, rendered, false);
         cairo_set_source_surface(cairo, rendered, 0, 0);
+        cairo_pattern_set_extend(cairo_get_source(cairo), CAIRO_EXTEND_PAD);
         cairo_paint(cairo);
         cairo_surface_destroy(rendered);
         return;
@@ -761,7 +787,8 @@ static void cb_page_draw(GtkDrawingArea* GIRARA_UNUSED(area), cairo_t* cairo, in
 
     /* set background color and draw */
     cairo_set_source_rgba(cairo, color_bg.red, color_bg.green, color_bg.blue, color_bg.alpha);
-    cairo_rectangle(cairo, 0, 0, page_width, page_height);
+    /* widen by the smart-width shift so the whole widget stays covered */
+    cairo_rectangle(cairo, -fabs(align_dx), 0, page_width + 2.0 * fabs(align_dx), page_height);
     cairo_fill(cairo);
 
     bool render_loading = true;
@@ -1036,6 +1063,9 @@ static void cb_zathura_page_widget_button_press_event(GtkGestureClick* gesture, 
   ZathuraPageWidget* page        = ZATHURA_PAGE_WIDGET(widget);
   ZathuraPageWidgetPrivate* priv = zathura_page_widget_get_instance_private(page);
 
+  /* undo the smart-width draw shift so hit testing matches what is on screen */
+  bx -= page_widget_align_offset(priv);
+
   const guint gbutton   = gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(gesture));
   GdkModifierType state = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(gesture));
 
@@ -1100,6 +1130,9 @@ static void cb_zathura_page_widget_button_release_event(GtkGestureClick* gesture
 
   zathura_document_t* document = zathura_page_get_document(priv->page);
   const double scale           = zathura_document_get_scale(document);
+
+  /* undo the smart-width draw shift so hit testing matches what is on screen */
+  bx -= page_widget_align_offset(priv);
 
   const int oldx        = bx;
   const int oldy        = by;
@@ -1175,6 +1208,9 @@ static void cb_zathura_page_widget_motion_notify(GtkEventControllerMotion* contr
   zathura_document_t* document = zathura_page_get_document(priv->page);
   const double scale           = zathura_document_get_scale(document);
   GdkModifierType evstate      = gtk_event_controller_get_current_event_state(GTK_EVENT_CONTROLLER(controller));
+
+  /* undo the smart-width draw shift so hit testing matches what is on screen */
+  ex -= page_widget_align_offset(priv);
 
   if (evstate & GDK_BUTTON1_MASK) { /* holding left mouse button */
     zathura_page_widget_clear_selection(page);
