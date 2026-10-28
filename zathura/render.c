@@ -530,6 +530,9 @@ static double colorumax(const double h[3], double l, double l1, double l2) {
 /* RGB weights for computing lightness. Must sum to one */
 static const double weights[] = {0.30, 0.59, 0.11};
 
+/* Images thinner than this (in PDF points) are recolored even in reverse video mode */
+#define REVERSE_VIDEO_MIN_IMAGE_SIZE 2.0
+
 static void recolor_slow(ZathuraRendererPrivate* priv, unsigned int page_width, unsigned int page_height,
                          cairo_surface_t* surface, girara_list_t* rectangles, bool found_images) {
   const GdkRGBA rgb1 = priv->recolor.dark;
@@ -757,6 +760,13 @@ static void recolor(ZathuraRendererPrivate* priv, zathura_page_t* page, unsigned
       /* Get images bounding boxes */
       for (size_t idx = 0; idx != girara_list_size(images); ++idx) {
         zathura_image_t* image_it = girara_list_nth(images, idx);
+        /* Some producers draw rules as 1x1 stencil images stretched to a line.
+         * Keeping those unrecolored punches bright paper-coloured stripes
+         * through the page, so skip anything too thin to be a picture. */
+        if (image_it->position.x2 - image_it->position.x1 < REVERSE_VIDEO_MIN_IMAGE_SIZE ||
+            image_it->position.y2 - image_it->position.y1 < REVERSE_VIDEO_MIN_IMAGE_SIZE) {
+          continue;
+        }
         zathura_rectangle_t* rect = g_try_malloc(sizeof(zathura_rectangle_t));
         if (rect == NULL) {
           break;
